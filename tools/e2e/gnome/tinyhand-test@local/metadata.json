@@ -1,0 +1,6 @@
+{
+  "uuid": "tinyhand-test@local",
+  "name": "TinyHand test driver",
+  "description": "Test-only: virtual input, screenshots and window info over D-Bus.",
+  "shell-version": ["47", "48", "49", "50"]
+}

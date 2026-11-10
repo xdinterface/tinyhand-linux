@@ -3,10 +3,12 @@ import GLib from 'gi://GLib';
 import Meta from 'gi://Meta';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
+import {PACKAGE_VERSION} from 'resource:///org/gnome/shell/misc/config.js';
 
 const APP_ID = 'io.github.xdinterface.TinyHand';
 const OBJECT_PATH = '/io/github/xdinterface/TinyHand';
 const PREFIX = 'TinyHand Overlay';
+const SHELL_MAJOR = parseInt(PACKAGE_VERSION.split('.')[0]);
 
 function isOverlay(win) {
     const title = win.get_title() ?? '';
@@ -69,10 +71,10 @@ export default class TinyHandExtension extends Extension {
         win.stick();
         if (index >= 0)
             win.move_to_monitor(index);
-        if (Meta.MaximizeFlags)
-            win.maximize(Meta.MaximizeFlags.BOTH);
-        else
+        if (SHELL_MAJOR >= 49)
             win.maximize();
+        else
+            win.maximize(Meta.MaximizeFlags.BOTH);
         Main.activateWindow(win);
     }
 }
