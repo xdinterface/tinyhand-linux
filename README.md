@@ -207,9 +207,11 @@ laser-sound = false
 interact-key = "alt"      # alt, ctrl, super, shift, off
 keyboard = "grab"         # see below
 tray = true
-toggle-shortcut = "ctrl+alt+h"   # GNOME only
-clear-shortcut = "ctrl+alt+x"    # GNOME only
+toggle-shortcut = "ctrl+alt+h"   # see below
+clear-shortcut = "ctrl+alt+x"
 ```
+
+`toggle-shortcut` and `clear-shortcut` are the real shortcuts on GNOME. On other desktops your own binds decide the keys, and these two only set the hint shown in the tray menu, so keep them the same as your binds. `"off"` hides the hint (and on GNOME removes the shortcut).
 
 `keyboard = "grab"` gives TinyHand the keyboard while the pointer is on, so Esc, C, M and 1–9 work. Your other apps count as unfocused meanwhile, and some draw themselves dimmer. `keyboard = "pass"` leaves the keyboard with your apps: they stay focused and you can type, but those keys no longer reach TinyHand, so use the toolbar and your two shortcuts instead.
 

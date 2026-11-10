@@ -157,6 +157,11 @@ impl Session {
         }
     }
 
+    fn shortcut_labels(&self) -> (Option<String>, Option<String>) {
+        let config = self.config.borrow();
+        (config::shortcut_label(&config.toggle_shortcut), config::shortcut_label(&config.clear_shortcut))
+    }
+
     pub fn passing(&self) -> bool {
         self.passing.get()
     }
@@ -196,7 +201,7 @@ impl Session {
         let overlays = self.overlays.borrow().clone();
         overlays.iter().for_each(|overlay| overlay.refresh());
         if let Some(tray) = self.tray.borrow().as_ref() {
-            tray.set(self.is_active(), self.sound_on());
+            tray.set(self.is_active(), self.sound_on(), self.shortcut_labels());
         }
     }
 
@@ -304,7 +309,7 @@ impl Session {
         let wanted = self.config.borrow().tray && self.hold.borrow().is_some();
         let mut tray = self.tray.borrow_mut();
         match (wanted, tray.is_some()) {
-            (true, false) => *tray = Tray::start(self.is_active(), self.sound_on()),
+            (true, false) => *tray = Tray::start(self.is_active(), self.sound_on(), self.shortcut_labels()),
             (false, true) => {
                 if let Some(tray) = tray.take() {
                     tray.stop();

@@ -16,6 +16,8 @@ fn send(action: &'static str) {
 struct Icon {
     active: bool,
     sound: bool,
+    toggle_key: Option<String>,
+    clear_key: Option<String>,
     icons: String,
 }
 
@@ -49,6 +51,10 @@ impl ksni::Tray for Icon {
     }
 
     fn menu(&self) -> Vec<MenuItem<Self>> {
+        let hinted = |label: &str, key: &Option<String>| match key {
+            Some(key) => format!("{label}\u{2003}\u{2003}{key}"),
+            None => label.to_string(),
+        };
         let item = |label: &str, action: &'static str| {
             MenuItem::Standard(StandardItem {
                 label: label.into(),
@@ -57,8 +63,8 @@ impl ksni::Tray for Icon {
             })
         };
         vec![
-            item(if self.active { "Turn Pointer Off" } else { "Turn Pointer On" }, "toggle"),
-            item("Clear Drawing", "clear"),
+            item(&hinted(if self.active { "Turn Pointer Off" } else { "Turn Pointer On" }, &self.toggle_key), "toggle"),
+            item(&hinted("Clear Drawing", &self.clear_key), "clear"),
             MenuItem::Checkmark(CheckmarkItem {
                 label: "Tap Sound".into(),
                 checked: self.sound,
@@ -76,15 +82,16 @@ impl ksni::Tray for Icon {
 pub struct Tray(ksni::blocking::Handle<Icon>);
 
 impl Tray {
-    pub fn start(active: bool, sound: bool) -> Option<Tray> {
+    pub fn start(active: bool, sound: bool, keys: (Option<String>, Option<String>)) -> Option<Tray> {
         let icons = paths::find_data("icons")?.to_string_lossy().into_owned();
-        Icon { active, sound, icons }.assume_sni_available(true).spawn().ok().map(Tray)
+        Icon { active, sound, toggle_key: keys.0, clear_key: keys.1, icons }.assume_sni_available(true).spawn().ok().map(Tray)
     }
 
-    pub fn set(&self, active: bool, sound: bool) {
+    pub fn set(&self, active: bool, sound: bool, keys: (Option<String>, Option<String>)) {
         self.0.update(|icon| {
             icon.active = active;
             icon.sound = sound;
+            (icon.toggle_key, icon.clear_key) = keys;
         });
     }
 

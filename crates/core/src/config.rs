@@ -45,6 +45,8 @@ pub struct Config {
     pub interact_key: InteractKey,
     pub keyboard: KeyboardMode,
     pub tray: bool,
+    pub toggle_shortcut: String,
+    pub clear_shortcut: String,
 }
 
 impl Default for Config {
@@ -63,12 +65,26 @@ impl Default for Config {
             interact_key: InteractKey::Alt,
             keyboard: KeyboardMode::Grab,
             tray: true,
+            toggle_shortcut: "ctrl+alt+h".into(),
+            clear_shortcut: "ctrl+alt+x".into(),
         }
     }
 }
 
 fn number(item: &Item) -> Option<f64> {
     item.as_float().or_else(|| item.as_integer().map(|i| i as f64)).filter(|v| v.is_finite())
+}
+
+pub fn shortcut_label(shortcut: &str) -> Option<String> {
+    let parts: Vec<&str> = shortcut.split('+').map(str::trim).collect();
+    if parts.iter().any(|part| part.is_empty()) || shortcut.trim().eq_ignore_ascii_case("off") {
+        return None;
+    }
+    let title = |part: &str| {
+        let mut chars = part.chars();
+        chars.next().map(|first| first.to_uppercase().chain(chars.flat_map(char::to_lowercase)).collect::<String>())
+    };
+    Some(parts.into_iter().filter_map(title).collect::<Vec<_>>().join("+"))
 }
 
 fn toolbar(item: &Item) -> Option<Vec<String>> {
@@ -123,6 +139,8 @@ impl Config {
         read!("interact-key", interact_key, |i: &Item| i.as_str().and_then(InteractKey::parse));
         read!("keyboard", keyboard, |i: &Item| i.as_str().and_then(KeyboardMode::parse));
         read!("tray", tray, Item::as_bool);
+        read!("toggle-shortcut", toggle_shortcut, text_of);
+        read!("clear-shortcut", clear_shortcut, text_of);
 
         for (key, _) in doc.iter() {
             if !KEYS.contains(&key) {
@@ -226,6 +244,20 @@ mod tests {
         assert_eq!(c.interact_key, InteractKey::Alt);
         assert_eq!(c.keyboard, KeyboardMode::Grab);
         assert!(c.tray);
+    }
+
+    #[test]
+    fn shortcut_labels() {
+        let c = Config::default();
+        assert_eq!(shortcut_label(&c.toggle_shortcut).as_deref(), Some("Ctrl+Alt+H"));
+        assert_eq!(shortcut_label(&c.clear_shortcut).as_deref(), Some("Ctrl+Alt+X"));
+        assert_eq!(shortcut_label(" super + shift+f5 ").as_deref(), Some("Super+Shift+F5"));
+        assert_eq!(shortcut_label("off"), None);
+        assert_eq!(shortcut_label(""), None);
+        let (c, warnings) = Config::parse("toggle-shortcut = \"off\"\nclear-shortcut = \"super+c\"\n");
+        assert!(warnings.is_empty());
+        assert_eq!(c.toggle_shortcut, "off");
+        assert_eq!(c.clear_shortcut, "super+c");
     }
 
     #[test]
