@@ -23,7 +23,7 @@ TinyHand needs a **Wayland** session. X11 sessions are not supported.
 
 | Desktop | Works | What you set up |
 |---|---|---|
-| GNOME 47 or later | Yes, through a helper extension that comes with the package | Nothing. Shortcuts work out of the box. |
+| GNOME 47 or later | Yes, through a helper extension that comes with the package | Log out and back in once. Shortcuts work out of the box. |
 | niri | Yes | Two shortcut lines in your niri config |
 | Hyprland | Yes | Two shortcut lines in your Hyprland config |
 | Sway | Yes | Two shortcut lines in your Sway config |
@@ -124,10 +124,11 @@ TinyHand is driven by two commands, and your desktop decides which keys run them
 
 ### GNOME
 
-1. Log out and back in after installing, so GNOME picks up the helper extension.
-2. Open **TinyHand** from the app grid once. This switches the extension on.
+**Log out and back in once after installing.** GNOME only picks up TinyHand's helper extension at login, and TinyHand can't work without it. If you forget, TinyHand tells you and offers to log you out.
 
-From then on Ctrl+Alt+H and Ctrl+Alt+X work, also after a restart. To use other keys, set them in the [config file](#settings):
+Then open **TinyHand** from the app grid once. That switches the extension on, and from then on Ctrl+Alt+H and Ctrl+Alt+X work, also after a restart.
+
+To use other keys, set them in the [config file](#settings):
 
 ```toml
 toggle-shortcut = "ctrl+alt+h"   # or "off"

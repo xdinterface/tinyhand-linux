@@ -1,4 +1,5 @@
 use crate::backend::{self, Backend};
+use crate::gnome::{self, Helper};
 use crate::hands::{self, HandTex};
 use crate::overlay::Overlay;
 use crate::sound::Player;
@@ -39,6 +40,7 @@ pub struct Session {
     reload_queued: Cell<bool>,
     passing: Cell<bool>,
     warned_readonly: Cell<bool>,
+    helper: Cell<Option<Helper>>,
 }
 
 fn warn(message: &str) {
@@ -82,6 +84,7 @@ impl Session {
             reload_queued: Cell::new(false),
             passing: Cell::new(false),
             warned_readonly: Cell::new(false),
+            helper: Cell::new(None),
         });
         session.resolve();
         session
@@ -270,8 +273,24 @@ impl Session {
         self.overlays.replace(overlays);
     }
 
+    fn helper_ready(&self) -> Result<(), Helper> {
+        if self.backend() != Backend::Window || self.helper.get() == Some(Helper::Ready) {
+            return Ok(());
+        }
+        let helper = gnome::prepare(&self.app);
+        self.helper.set(Some(helper));
+        match helper {
+            Helper::Ready | Helper::NoShell => Ok(()),
+            problem => Err(problem),
+        }
+    }
+
     pub fn activate(self: &Rc<Self>) {
         if self.is_active() {
+            return;
+        }
+        if let Err(problem) = self.helper_ready() {
+            gnome::explain(&self.app, problem);
             return;
         }
         let marker = paths::state_dir().join("hint-shown");
@@ -326,9 +345,7 @@ impl Session {
         }
         self.hold.replace(Some(self.app.hold()));
         self.sync_tray_presence();
-        if self.backend() == Backend::Window {
-            crate::gnome::enable_extension(&self.app);
-        }
+        let _ = self.helper_ready();
 
         let monitor = gio::File::for_path(paths::config_file())
             .monitor_file(gio::FileMonitorFlags::NONE, gio::Cancellable::NONE)

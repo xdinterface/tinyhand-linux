@@ -9,7 +9,6 @@ check "helper starts disabled" eval '! gnome-extensions info tinyhand@xdinterfac
 TH_TIMEOUT=60 th > $E/th.log 2>&1 &
 sleep 2.5
 check "app switches the helper on" eval 'gnome-extensions info tinyhand@xdinterface.github.io | grep -q "State: ACTIVE"'
-check "marker written" test -e $XDG_STATE_HOME/tinyhand/gnome-extension-enabled
 chord 0x68
 check "Ctrl+Alt+H turns it on" test "$(status)" = 0
 chord 0x68
