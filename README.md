@@ -135,7 +135,7 @@ toggle-shortcut = "ctrl+alt+h"   # or "off"
 clear-shortcut = "ctrl+alt+x"
 ```
 
-GNOME has no tray by default, so the tray icon only shows if you use an AppIndicator extension (Ubuntu has one built in).
+GNOME has no tray, so TinyHand puts its own icon and menu in the top bar instead. `tray = false` hides it. Opening the overview keeps the pointer on.
 
 ### niri
 
@@ -186,7 +186,7 @@ The first `tinyhand toggle` starts TinyHand, so this is only needed if you want 
 | Esc | Clear everything and turn the pointer off |
 | 1–9, M | Pick a pointer from the toolbar, mute |
 
-While the pointer is on, a small toolbar at the bottom of the screen lets you pick one of 36 hands or a laser dot, change the ink colour, mute the tap sound, or exit.
+While the pointer is on, a small toolbar at the bottom of the screen lets you pick one of 36 hands or a laser dot, change the ink colour, mute the tap sound, open the settings, or exit.
 
 More commands: `tinyhand on`, `off`, `pick <id>`, `list`, `sound [on|off]`, `status`, `settings`, `make-hand <image> [name]`, `quit`. See `tinyhand --help`.
 

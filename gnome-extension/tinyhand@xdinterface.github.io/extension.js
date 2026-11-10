@@ -2,8 +2,13 @@ import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import Meta from 'gi://Meta';
 import Shell from 'gi://Shell';
+import St from 'gi://St';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
-import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
+import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
+import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
+import {Workspace} from 'resource:///org/gnome/shell/ui/workspace.js';
+import {WorkspaceThumbnail} from 'resource:///org/gnome/shell/ui/workspaceThumbnail.js';
+import {Extension, InjectionManager} from 'resource:///org/gnome/shell/extensions/extension.js';
 import {PACKAGE_VERSION} from 'resource:///org/gnome/shell/misc/config.js';
 
 const APP_ID = 'io.github.xdinterface.TinyHand';
@@ -41,12 +46,15 @@ function accelerator(text) {
     return parts.map(part => MODIFIERS[part]).join('') + key;
 }
 
-function readShortcuts() {
-    let text = '';
+function readConfig() {
     try {
-        text = new TextDecoder().decode(GLib.file_get_contents(configPath())[1]);
+        return new TextDecoder().decode(GLib.file_get_contents(configPath())[1]);
     } catch {
+        return '';
     }
+}
+
+function readShortcuts(text) {
     const shortcuts = {};
     for (const [action, fallback] of Object.entries(SHORTCUTS)) {
         const match = text.match(new RegExp(`^\\s*${action}-shortcut\\s*=\\s*"([^"]*)"`, 'm'));
@@ -60,18 +68,26 @@ export default class TinyHandExtension extends Extension {
         this._watched = new Map();
         this._placed = new WeakSet();
         this._created = global.display.connect('window-created', (_display, win) => this._watch(win));
-        this._overview = Main.overview.connect('showing', () => {
-            if (global.get_window_actors().some(actor => isOverlay(actor.meta_window)))
-                activate('off', Gio.DBusCallFlags.NO_AUTO_START);
+        this._overview = Main.overview.connect('hidden', () => {
+            for (const win of this._watched.keys()) {
+                if (isOverlay(win) && !win.get_title().endsWith(PASS))
+                    this._setPassing(win, false);
+            }
         });
+        this._injections = new InjectionManager();
+        for (const proto of [Workspace.prototype, WorkspaceThumbnail.prototype]) {
+            this._injections.overrideMethod(proto, '_isOverviewWindow', original => function (win) {
+                return !isOverlay(win.get_meta_window?.() ?? win) && original.call(this, win);
+            });
+        }
         this._grabs = new Map();
         this._activated = global.display.connect('accelerator-activated', (_display, id) => {
             if (this._grabs.has(id))
                 activate(this._grabs.get(id), Gio.DBusCallFlags.NONE);
         });
         this._config = Gio.File.new_for_path(configPath()).monitor_file(Gio.FileMonitorFlags.NONE, null);
-        this._config.connect('changed', () => this._grab());
-        this._grab();
+        this._config.connect('changed', () => this._configure());
+        this._configure();
         for (const actor of global.get_window_actors())
             this._watch(actor.meta_window);
     }
@@ -79,6 +95,10 @@ export default class TinyHandExtension extends Extension {
     disable() {
         global.display.disconnect(this._created);
         Main.overview.disconnect(this._overview);
+        this._injections.clear();
+        this._injections = null;
+        this._indicator?.destroy();
+        this._indicator = null;
         global.display.disconnect(this._activated);
         this._config.cancel();
         this._config = null;
@@ -90,9 +110,49 @@ export default class TinyHandExtension extends Extension {
         this._placed = null;
     }
 
-    _grab() {
+    _configure() {
+        const text = readConfig();
+        this._grab(readShortcuts(text));
+        const wanted = !/^\s*tray\s*=\s*false/m.test(text);
+        if (wanted && !this._indicator)
+            this._addIndicator();
+        else if (!wanted && this._indicator) {
+            this._indicator.destroy();
+            this._indicator = null;
+        }
+    }
+
+    _addIndicator() {
+        this._indicator = new PanelMenu.Button(0.5, 'TinyHand');
+        this._icon = new St.Icon({style_class: 'system-status-icon'});
+        this._indicator.add_child(this._icon);
+        const item = (label, action) => {
+            const entry = new PopupMenu.PopupMenuItem(label);
+            entry.connect('activate', () => activate(action, Gio.DBusCallFlags.NONE));
+            this._indicator.menu.addMenuItem(entry);
+            return entry;
+        };
+        this._toggle = item('', 'toggle');
+        item('Clear Drawing', 'clear');
+        this._indicator.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+        item('Settings…', 'settings');
+        item('Quit TinyHand', 'quit');
+        this._indicator.connect('destroy', () => (this._indicator = null));
+        Main.panel.addToStatusArea(this.uuid, this._indicator);
+        this._syncIndicator();
+    }
+
+    _syncIndicator() {
+        if (!this._indicator)
+            return;
+        const on = [...this._watched.keys()].some(isOverlay);
+        this._icon.gicon = Gio.icon_new_for_string(`${this.path}/tinyhand-${on ? 'on' : 'off'}-symbolic.svg`);
+        this._toggle.label.text = on ? 'Turn Pointer Off' : 'Turn Pointer On';
+    }
+
+    _grab(shortcuts) {
         this._ungrab();
-        for (const [action, accel] of Object.entries(readShortcuts())) {
+        for (const [action, accel] of Object.entries(shortcuts)) {
             if (!accel)
                 continue;
             const id = global.display.grab_accelerator(accel, Meta.KeyBindingFlags.NONE);
@@ -121,6 +181,7 @@ export default class TinyHandExtension extends Extension {
             win.connect('unmanaged', () => {
                 ids.forEach(id => win.disconnect(id));
                 this._watched?.delete(win);
+                this._syncIndicator?.();
             }),
         ];
         this._watched.set(win, ids);
@@ -142,6 +203,7 @@ export default class TinyHandExtension extends Extension {
     _place(win) {
         if (!isOverlay(win))
             return;
+        this._syncIndicator();
         if (this._placed.has(win)) {
             this._setPassing(win, win.get_title().endsWith(PASS));
             return;

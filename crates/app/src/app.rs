@@ -326,7 +326,8 @@ impl Session {
     }
 
     fn sync_tray_presence(&self) {
-        let wanted = self.config.borrow().tray && self.hold.borrow().is_some();
+        let shell_menu = self.helper.get() == Some(Helper::Ready);
+        let wanted = self.config.borrow().tray && self.hold.borrow().is_some() && !shell_menu;
         let mut tray = self.tray.borrow_mut();
         match (wanted, tray.is_some()) {
             (true, false) => *tray = Tray::start(self.is_active(), self.sound_on(), self.shortcut_labels()),
@@ -344,8 +345,8 @@ impl Session {
             return;
         }
         self.hold.replace(Some(self.app.hold()));
-        self.sync_tray_presence();
         let _ = self.helper_ready();
+        self.sync_tray_presence();
 
         let monitor = gio::File::for_path(paths::config_file())
             .monitor_file(gio::FileMonitorFlags::NONE, gio::Cancellable::NONE)
@@ -404,7 +405,7 @@ impl Session {
         self.app.quit();
     }
 
-    fn open_settings(&self) {
+    pub fn open_settings(&self) {
         self.deactivate();
         if let Ok(exe) = std::env::current_exe() {
             let spawned = gio::Subprocess::newv(

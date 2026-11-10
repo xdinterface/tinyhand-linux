@@ -28,10 +28,16 @@ check "overlay visible on workspace 2" test "$(field sticky)" = True
 drv Workspace 0; sleep 0.5
 key 0xff1b; sleep 0.6
 th status >/dev/null; check "Esc turns it off" test $? = 1
-th on; sleep 1
+th on; sleep 1; cur 600 400; sleep 0.3
 drv Overview true; sleep 1.2
-th status >/dev/null; check "overview turns it off" test $? = 1
-drv Overview false; sleep 0.5
+shot overview
+th status >/dev/null; check "still on in the overview" test $? = 0
+drv Overview false; sleep 1
+check "overlay focused again after the overview" test "$(field focused)" = True
+check "overlay on top after the overview" test "$(field top)" = True
+cur 620 420; sleep 0.3; shot after-overview
+cur 1305 16; sleep 0.3; down; up; sleep 0.8; shot panel-menu; cur 1300 64; sleep 0.2; down; up; sleep 0.8
+th status >/dev/null; check "top-bar menu turns the pointer off" test $? = 1
 th quit
 grep -iE "JS (ERROR|WARNING)" $E/shell.log | head -5
 echo "RESULT=$FAIL"

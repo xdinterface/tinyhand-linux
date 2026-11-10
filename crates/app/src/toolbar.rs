@@ -140,12 +140,14 @@ impl Toolbar {
         });
         let ink = button(&ink_dot, "Ink colour");
         let sound = button(&gtk::Image::from_icon_name("audio-volume-high-symbolic"), "Tap sound");
+        let settings = button(&gtk::Image::from_icon_name("emblem-system-symbolic"), "Settings");
         let exit = button(&gtk::Image::from_icon_name("window-close-symbolic"), "Exit (Esc)");
 
         bar.append(&hands);
         bar.append(&divider);
         bar.append(&ink);
         bar.append(&sound);
+        bar.append(&settings);
         bar.append(&exit);
         root.append(&hint);
         root.append(&swatches);
@@ -189,6 +191,12 @@ impl Toolbar {
         toolbar.sound.connect_clicked(move |_| {
             if let Some(session) = weak.upgrade() {
                 session.set_sound(!session.sound_on());
+            }
+        });
+        let weak = Rc::downgrade(session);
+        settings.connect_clicked(move |_| {
+            if let Some(session) = weak.upgrade() {
+                session.open_settings();
             }
         });
         let weak = Rc::downgrade(session);

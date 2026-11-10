@@ -8,7 +8,7 @@ export E=$T/out/gnome
 rm -rf $E && mkdir -p $E/{config,data,cache,state,runtime} && chmod 700 $E/runtime
 mkdir -p $E/data/gnome-shell/extensions
 cp -r $T/gnome/tinyhand-test@local $E/data/gnome-shell/extensions/
-[ -n "${NO_INSTALL:-}" ] || cp -r $P/gnome-extension/tinyhand@xdinterface.github.io $E/data/gnome-shell/extensions/
+[ -n "${NO_INSTALL:-}" ] || cp -rL $P/gnome-extension/tinyhand@xdinterface.github.io $E/data/gnome-shell/extensions/
 cat > $E/inner.sh <<'INNER'
 set -u
 gsettings set org.gnome.shell disable-user-extensions false
