@@ -94,7 +94,7 @@ pub fn page(ctx: &Rc<Ctx>) -> adw::PreferencesPage {
 
     let pinned_group = adw::PreferencesGroup::new();
     pinned_group.set_title("In your toolbar");
-    pinned_group.set_description(Some("Click a pointer to remove it. Keys 1 to 9 pick them while the pointer is on."));
+    pinned_group.set_description(Some("Drag to reorder, click to remove. Keys 1 to 9 pick them while the pointer is on."));
     let reset = gtk::Button::with_label("Reset");
     reset.add_css_class("flat");
     let weak = Rc::downgrade(ctx);
@@ -152,12 +152,35 @@ pub fn page(ctx: &Rc<Ctx>) -> adw::PreferencesPage {
                 button.set_child(Some(&pointer_icon(id, ICON)));
                 button.add_css_class("flat");
                 button.set_tooltip_text(Some(&format!("Remove {} from the toolbar", name(&ctx, id))));
-                let (weak, id) = (Rc::downgrade(&ctx), id.clone());
+                let (weak, removed) = (Rc::downgrade(&ctx), id.clone());
                 button.connect_clicked(move |_| {
                     if let Some(ctx) = weak.upgrade() {
-                        unpin(&ctx, &id);
+                        unpin(&ctx, &removed);
                     }
                 });
+                let drag = gtk::DragSource::new();
+                drag.set_actions(gtk::gdk::DragAction::MOVE);
+                drag.set_content(Some(&gtk::gdk::ContentProvider::for_value(&id.to_value())));
+                drag.connect_drag_begin(|drag, _| {
+                    if let Some(widget) = drag.widget() {
+                        drag.set_icon(Some(&gtk::WidgetPaintable::new(Some(&widget))), ICON / 2, ICON / 2);
+                    }
+                });
+                button.add_controller(drag);
+                let drop = gtk::DropTarget::new(String::static_type(), gtk::gdk::DragAction::MOVE);
+                let (weak, onto) = (Rc::downgrade(&ctx), id.clone());
+                drop.connect_drop(move |_, value, _, _| {
+                    let (Some(ctx), Ok(id)) = (weak.upgrade(), value.get::<String>()) else {
+                        return false;
+                    };
+                    let mut ids = ctx.config.borrow().toolbar.clone();
+                    let moved = tinyhand_core::config::move_pinned(&mut ids, &id, &onto);
+                    if moved {
+                        save_toolbar(&ctx, ids);
+                    }
+                    moved
+                });
+                button.add_controller(drop);
                 pinned.append(&button);
             }
 

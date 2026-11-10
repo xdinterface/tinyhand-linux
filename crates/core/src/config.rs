@@ -12,7 +12,7 @@ pub const SIZE_MAX: f64 = 0.20;
 pub const SIZE_DEFAULT: f64 = 0.13;
 pub const FADE_MAX: f64 = 3600.0;
 
-pub const KEYS: [&str; 15] = [
+pub const KEYS: [&str; 16] = [
     "pointer",
     "size",
     "shadow",
@@ -23,6 +23,7 @@ pub const KEYS: [&str; 15] = [
     "tap-sound",
     "sound",
     "laser-sound",
+    "volume",
     "interact-key",
     "keyboard",
     "tray",
@@ -42,6 +43,7 @@ pub struct Config {
     pub tap_sound: TapSound,
     pub sound: bool,
     pub laser_sound: bool,
+    pub volume: f64,
     pub interact_key: InteractKey,
     pub keyboard: KeyboardMode,
     pub tray: bool,
@@ -62,6 +64,7 @@ impl Default for Config {
             tap_sound: TapSound::Thock,
             sound: true,
             laser_sound: false,
+            volume: 1.0,
             interact_key: InteractKey::Alt,
             keyboard: KeyboardMode::Grab,
             tray: true,
@@ -73,6 +76,18 @@ impl Default for Config {
 
 fn number(item: &Item) -> Option<f64> {
     item.as_float().or_else(|| item.as_integer().map(|i| i as f64)).filter(|v| v.is_finite())
+}
+
+pub fn move_pinned(ids: &mut Vec<String>, id: &str, onto: &str) -> bool {
+    let (Some(from), Some(to)) = (ids.iter().position(|p| p == id), ids.iter().position(|p| p == onto)) else {
+        return false;
+    };
+    if from == to {
+        return false;
+    }
+    let moved = ids.remove(from);
+    ids.insert(to, moved);
+    true
 }
 
 pub fn shortcut_label(shortcut: &str) -> Option<String> {
@@ -136,6 +151,7 @@ impl Config {
         read!("tap-sound", tap_sound, |i: &Item| i.as_str().and_then(TapSound::parse));
         read!("sound", sound, Item::as_bool);
         read!("laser-sound", laser_sound, Item::as_bool);
+        read!("volume", volume, |i| number(i).map(|v| v.clamp(0.0, 1.0)));
         read!("interact-key", interact_key, |i: &Item| i.as_str().and_then(InteractKey::parse));
         read!("keyboard", keyboard, |i: &Item| i.as_str().and_then(KeyboardMode::parse));
         read!("tray", tray, Item::as_bool);
@@ -244,6 +260,31 @@ mod tests {
         assert_eq!(c.interact_key, InteractKey::Alt);
         assert_eq!(c.keyboard, KeyboardMode::Grab);
         assert!(c.tray);
+    }
+
+    #[test]
+    fn volume_is_clamped_and_defaults_to_full() {
+        assert_eq!(Config::default().volume, 1.0);
+        assert_eq!(Config::parse("volume = 0.4").0.volume, 0.4);
+        assert_eq!(Config::parse("volume = 7").0.volume, 1.0);
+        assert_eq!(Config::parse("volume = -1").0.volume, 0.0);
+        let (c, warnings) = Config::parse("volume = \"loud\"");
+        assert_eq!((c.volume, warnings.len()), (1.0, 1));
+    }
+
+    #[test]
+    fn move_pinned_reorders() {
+        let ids = || vec!["a".to_string(), "b".into(), "c".into(), "d".into()];
+        let mut v = ids();
+        assert!(move_pinned(&mut v, "a", "c"));
+        assert_eq!(v, ["b", "c", "a", "d"]);
+        let mut v = ids();
+        assert!(move_pinned(&mut v, "d", "b"));
+        assert_eq!(v, ["a", "d", "b", "c"]);
+        let mut v = ids();
+        assert!(!move_pinned(&mut v, "b", "b"));
+        assert!(!move_pinned(&mut v, "x", "b"));
+        assert_eq!(v, ids());
     }
 
     #[test]

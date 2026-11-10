@@ -153,7 +153,8 @@ impl Session {
 
     pub fn tap(&self) {
         if self.sound_on() {
-            self.player.play(self.config.borrow().tap_sound);
+            let (sound, volume) = (self.config.borrow().tap_sound, self.config.borrow().volume);
+            self.player.play(sound, volume);
         }
     }
 

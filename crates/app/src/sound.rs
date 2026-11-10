@@ -92,7 +92,7 @@ impl Player {
         self.closing.replace(Some(id));
     }
 
-    pub fn play(&self, sound: TapSound) {
+    pub fn play(&self, sound: TapSound, volume: f64) {
         let Some(wav) = self.wav(sound) else {
             return;
         };
@@ -101,7 +101,9 @@ impl Player {
             return;
         };
         if let Some(out) = self.out.borrow().as_ref() {
-            out.mixer().add(SamplesBuffer::new(channels, rate, wav.samples));
+            let gain = volume as f32;
+            let samples: Vec<f32> = wav.samples.iter().map(|s| s * gain).collect();
+            out.mixer().add(SamplesBuffer::new(channels, rate, samples));
         }
     }
 }

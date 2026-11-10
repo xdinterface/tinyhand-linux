@@ -203,6 +203,7 @@ ink-fade = 3              # seconds; 0 keeps lines until cleared
 ink-button = true
 tap-sound = "thock"       # thock, click, pop, wood, boop, squeak
 sound = true
+volume = 1.0              # 0 to 1
 laser-sound = false
 interact-key = "alt"      # alt, ctrl, super, shift, off
 keyboard = "grab"         # see below

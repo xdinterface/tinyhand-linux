@@ -320,7 +320,8 @@ pub fn sound(ctx: &Rc<Ctx>) -> adw::PreferencesPage {
                     if config.tap_sound != sound {
                         ctx.set("tap-sound", sound.as_str(), |c| c.tap_sound = sound);
                     }
-                    ctx.player.play(sound);
+                    let volume = ctx.config.borrow().volume;
+                    ctx.player.play(sound, volume);
                 }
                 None => {}
             }
@@ -333,6 +334,34 @@ pub fn sound(ctx: &Rc<Ctx>) -> adw::PreferencesPage {
         }
     });
     page.add(&taps);
+
+    let level = group("", None);
+    let volume = adw::ActionRow::new();
+    volume.set_title("Volume");
+    let scale = gtk::Scale::with_range(gtk::Orientation::Horizontal, 0.0, 1.0, 0.05);
+    scale.set_value(ctx.config.borrow().volume);
+    scale.set_hexpand(true);
+    scale.set_width_request(260);
+    scale.set_valign(gtk::Align::Center);
+    scale.set_sensitive(ctx.writable);
+    let weak = Rc::downgrade(ctx);
+    scale.connect_value_changed(move |scale| {
+        if let Some(ctx) = weak.upgrade() {
+            let value = (scale.value() * 100.0).round() / 100.0;
+            if (ctx.config.borrow().volume - value).abs() > f64::EPSILON {
+                ctx.set("volume", value, |c| c.volume = value);
+            }
+        }
+    });
+    let (weak, synced) = (Rc::downgrade(ctx), scale.downgrade());
+    ctx.on_rebuild(move || {
+        if let (Some(ctx), Some(scale)) = (weak.upgrade(), synced.upgrade()) {
+            scale.set_value(ctx.config.borrow().volume);
+        }
+    });
+    volume.add_suffix(&scale);
+    level.add(&volume);
+    page.add(&level);
 
     let laser = group("Laser dot", None);
     laser.add(&switch(
