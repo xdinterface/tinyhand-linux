@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=TinyHand
+Comment=A tiny hand on a stick that points at things on your screen
+Exec=tinyhand toggle
+Icon=io.github.xdinterface.TinyHand
+Categories=Utility;
+Keywords=pointer;presentation;laser;draw;annotate;
+StartupNotify=false
+Actions=settings;
+
+[Desktop Action settings]
+Name=Settings
+Exec=tinyhand settings

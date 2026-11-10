@@ -1,0 +1,7 @@
+{
+  "uuid": "tinyhand@xdinterface.github.io",
+  "name": "TinyHand helper",
+  "description": "Keeps the TinyHand pointer overlay above other windows on every workspace. Needs the tinyhand app.",
+  "shell-version": ["47", "48", "49", "50"],
+  "url": "https://github.com/xdinterface/tinyhand-linux"
+}

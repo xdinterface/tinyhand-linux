@@ -1,0 +1,80 @@
+window.tinyhand-overlay {
+  background: none;
+}
+
+.th-bar,
+.th-swatches,
+.th-hint {
+  background-color: rgba(30, 30, 33, 0.86);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  color: white;
+}
+
+.th-bar {
+  border-radius: 16px;
+  padding: 8px 10px;
+}
+
+.th-swatches {
+  border-radius: 14px;
+  padding: 5px 6px;
+}
+
+.th-hint {
+  border-radius: 12px;
+  padding: 9px 16px;
+  font-size: 12.5px;
+}
+
+.th-hint .th-key {
+  font-weight: 600;
+}
+
+.th-hint .th-text {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.th-toolbar {
+  margin: 24px 24px 14px 24px;
+  opacity: 0;
+  transition: opacity 350ms;
+}
+
+.th-toolbar.revealed {
+  opacity: 1;
+  transition: opacity 150ms;
+}
+
+.th-toolbar button {
+  all: unset;
+  min-width: 40px;
+  min-height: 40px;
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.th-toolbar button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.th-toolbar button.selected {
+  background-color: rgba(255, 255, 255, 0.18);
+}
+
+.th-toolbar button.muted {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.th-swatches button {
+  min-width: 30px;
+  min-height: 30px;
+  border-radius: 15px;
+}
+
+.th-divider {
+  min-width: 1px;
+  min-height: 24px;
+  margin: 8px 2px;
+  background-color: rgba(255, 255, 255, 0.18);
+}

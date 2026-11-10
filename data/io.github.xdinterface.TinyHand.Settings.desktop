@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=TinyHand Settings
+Exec=tinyhand settings
+Icon=io.github.xdinterface.TinyHand
+NoDisplay=true
+StartupNotify=true
