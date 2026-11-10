@@ -168,3 +168,8 @@ pub fn draw_stroke(s: &gtk::Snapshot, stroke: &Stroke, opacity: f64) {
         s.pop();
     }
 }
+
+pub fn draw_commit_nudge(s: &gtk::Snapshot, flip: bool) {
+    let alpha = if flip { 2.0 } else { 1.0 } / 255.0;
+    s.append_color(&gdk::RGBA::new(0.0, 0.0, 0.0, alpha), &rect(0.0, 0.0, 1.0, 1.0));
+}

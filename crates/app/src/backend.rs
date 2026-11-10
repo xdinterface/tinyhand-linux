@@ -4,6 +4,7 @@ use gtk4_layer_shell::{Edge, KeyboardMode as LayerKeyboard, Layer, LayerShell};
 use tinyhand_core::catalog::KeyboardMode;
 
 pub const WINDOW_TITLE: &str = "TinyHand Overlay";
+const PASS_SUFFIX: &str = " [pass]";
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Backend {
@@ -39,6 +40,14 @@ pub fn place(window: &gtk::Window, monitor: &gdk::Monitor, backend: Backend, key
             window.set_title(Some(&format!("{WINDOW_TITLE} {connector}")));
             window.maximize();
         }
+    }
+}
+
+pub fn set_passing(window: &gtk::Window, monitor: &gdk::Monitor, backend: Backend, passing: bool) {
+    if backend == Backend::Window {
+        let connector = monitor.connector().unwrap_or_default();
+        let suffix = if passing { PASS_SUFFIX } else { "" };
+        window.set_title(Some(&format!("{WINDOW_TITLE} {connector}{suffix}")));
     }
 }
 

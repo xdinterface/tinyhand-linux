@@ -14,6 +14,7 @@ use tinyhand_core::ink;
 
 const REVEAL_ON_START: f64 = 3.0;
 const REVEAL_WITH_HINT: f64 = 10.0;
+const FOCUS_SETTLE: Duration = Duration::from_millis(40);
 const FIRST_FRAME: f64 = 1.0 / 120.0;
 const LONGEST_FRAME: f64 = 0.05;
 
@@ -37,6 +38,15 @@ fn interact_mask(session: &Session) -> gdk::ModifierType {
     }
 }
 
+fn interact_key_held(session: &Session) -> bool {
+    let mask = interact_mask(session);
+    let held = gdk::Display::default()
+        .and_then(|display| display.default_seat())
+        .and_then(|seat| seat.keyboard())
+        .map(|keyboard| keyboard.modifier_state());
+    !mask.is_empty() && held.is_some_and(|state| state.contains(mask))
+}
+
 fn seconds(micros: i64) -> f64 {
     micros as f64 / 1e6
 }
@@ -49,6 +59,7 @@ struct State {
     strokes: Vec<Stroke>,
     drawing: bool,
     passing: bool,
+    commit_nudge: bool,
     last_frame: Option<i64>,
     reveal_until: i64,
 }
@@ -211,6 +222,27 @@ impl Overlay {
         });
         self.window.add_controller(keys);
 
+        let focus = gtk::EventControllerLegacy::new();
+        let weak = self.session.clone();
+        focus.connect_event(move |_, event| {
+            if let Some(focus) = event.downcast_ref::<gdk::FocusEvent>()
+                && let Some(session) = weak.upgrade()
+            {
+                if focus.is_in() {
+                    let weak = Rc::downgrade(&session);
+                    glib::timeout_add_local_once(FOCUS_SETTLE, move || {
+                        if let Some(session) = weak.upgrade() {
+                            session.set_passing(interact_key_held(&session));
+                        }
+                    });
+                } else {
+                    session.set_passing(false);
+                }
+            }
+            glib::Propagation::Proceed
+        });
+        self.window.add_controller(focus);
+
         let weak = self.session.clone();
         self.window.connect_is_active_notify(move |window| {
             if !window.is_active()
@@ -345,6 +377,7 @@ impl Overlay {
         };
         let config = session.config.borrow();
         let state = self.state.borrow();
+        canvas::draw_commit_nudge(snapshot, state.commit_nudge);
         let now = glib::monotonic_time();
         for stroke in &state.strokes {
             let opacity = stroke.ended.map_or(Some(1.0), |at| ink::opacity(seconds(now - at), config.ink_fade));
@@ -384,12 +417,16 @@ impl Overlay {
         {
             let mut state = self.state.borrow_mut();
             state.passing = passing;
+            state.commit_nudge = !state.commit_nudge;
             if passing {
                 state.cursor = None;
                 state.down = None;
                 state.drawing = false;
                 state.arm.release();
             }
+        }
+        if let Some(session) = self.session.upgrade() {
+            backend::set_passing(&self.window, &self.monitor, session.backend(), passing);
         }
         if let Some(surface) = self.window.surface() {
             let nothing = Region::create();

@@ -18,10 +18,11 @@ check "tap does not reach the settings window" eval '! grep -q "^tray = true" $T
 keydown 0xffe9; sleep 0.4
 cur 1042 727; sleep 0.2; down; up; sleep 0.6
 keyup 0xffe9; sleep 0.5
-check "KNOWN(queue) Alt-click reaches the settings window" grep -q "^tray = true" $TINYHAND_CONFIG
+check "Alt-click reaches the settings window" grep -q "^tray = true" $TINYHAND_CONFIG
 th status >/dev/null; check "still on after Alt-click" test $? = 0
 cur 600 400; sleep 0.3
-check "KNOWN(queue) overlay back on top after Alt-click" test "$(field top)" = True
+check "overlay focused again after Alt-click" test "$(field focused)" = True
+check "overlay back on top after Alt-click" test "$(field top)" = True
 drv Workspace 1; sleep 0.8
 check "overlay visible on workspace 2" test "$(field sticky)" = True
 drv Workspace 0; sleep 0.5

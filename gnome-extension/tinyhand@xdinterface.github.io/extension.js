@@ -8,6 +8,7 @@ import {PACKAGE_VERSION} from 'resource:///org/gnome/shell/misc/config.js';
 const APP_ID = 'io.github.xdinterface.TinyHand';
 const OBJECT_PATH = '/io/github/xdinterface/TinyHand';
 const PREFIX = 'TinyHand Overlay';
+const PASS = ' [pass]';
 const SHELL_MAJOR = parseInt(PACKAGE_VERSION.split('.')[0]);
 
 function isOverlay(win) {
@@ -61,11 +62,27 @@ export default class TinyHandExtension extends Extension {
         check();
     }
 
-    _place(win) {
-        if (this._placed.has(win) || !isOverlay(win))
+    _setPassing(win, passing) {
+        if (passing) {
+            win.unmake_above();
+            win.lower();
             return;
+        }
+        win.make_above();
+        win.raise();
+        if (!win.has_focus())
+            Main.activateWindow(win);
+    }
+
+    _place(win) {
+        if (!isOverlay(win))
+            return;
+        if (this._placed.has(win)) {
+            this._setPassing(win, win.get_title().endsWith(PASS));
+            return;
+        }
         this._placed.add(win);
-        const connector = win.get_title().slice(PREFIX.length).trim();
+        const connector = win.get_title().slice(PREFIX.length).replace(PASS, '').trim();
         const index = global.backend.get_monitor_manager().get_monitor_for_connector(connector);
         win.make_above();
         win.stick();
