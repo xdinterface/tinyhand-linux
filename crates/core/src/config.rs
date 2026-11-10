@@ -12,7 +12,7 @@ pub const SIZE_MAX: f64 = 0.20;
 pub const SIZE_DEFAULT: f64 = 0.13;
 pub const FADE_MAX: f64 = 3600.0;
 
-pub const KEYS: [&str; 13] = [
+pub const KEYS: [&str; 15] = [
     "pointer",
     "size",
     "shadow",
@@ -26,6 +26,8 @@ pub const KEYS: [&str; 13] = [
     "interact-key",
     "keyboard",
     "tray",
+    "toggle-shortcut",
+    "clear-shortcut",
 ];
 
 #[derive(Clone, Debug, PartialEq)]

@@ -17,6 +17,7 @@ rustPlatform.buildRustPackage {
     fileset = lib.fileset.unions [
       ../Cargo.toml
       ../Cargo.lock
+      ../Makefile
       ../crates
       ../assets
       ../data
@@ -35,14 +36,7 @@ rustPlatform.buildRustPackage {
   '';
 
   postInstall = ''
-    install -Dm644 -t $out/share/tinyhand/hands assets/hands/*.png
-    install -Dm644 -t $out/share/tinyhand/sounds assets/sounds/*.wav
-    install -Dm644 -t $out/share/tinyhand/icons assets/icons/tinyhand-*-symbolic.svg
-    install -Dm644 -t $out/share/icons/hicolor/symbolic/apps assets/icons/tinyhand-*-symbolic.svg
-    install -Dm644 -t $out/share/icons/hicolor/scalable/apps assets/icons/io.github.xdinterface.TinyHand.svg
-    install -Dm644 -t $out/share/applications data/*.desktop
-    mkdir -p $out/share/gnome-shell/extensions
-    cp -r gnome-extension/tinyhand@xdinterface.github.io $out/share/gnome-shell/extensions/
+    make install-data PREFIX=$out
   '';
 
   meta = {

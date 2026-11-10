@@ -7,6 +7,7 @@ use gtk::glib::ExitCode;
 use gtk::prelude::*;
 use gtk::{gdk, gio, glib};
 use std::cell::{Cell, OnceCell, RefCell};
+use std::io::Write;
 use std::rc::Rc;
 use std::time::Duration;
 use tinyhand_core::catalog::{self, DEFAULT_POINTER, InkChoice, LASER};
@@ -319,6 +320,9 @@ impl Session {
         }
         self.hold.replace(Some(self.app.hold()));
         self.sync_tray_presence();
+        if self.backend() == Backend::Window {
+            crate::gnome::enable_extension(&self.app);
+        }
 
         let monitor = gio::File::for_path(paths::config_file())
             .monitor_file(gio::FileMonitorFlags::NONE, gio::Cancellable::NONE)
@@ -427,8 +431,11 @@ fn pointer_ids(customs: &[CustomHand]) -> Vec<String> {
 
 pub fn list() -> ExitCode {
     let customs = custom::load(&paths::custom_hands_dir());
+    let mut out = std::io::stdout().lock();
     for id in pointer_ids(&customs) {
-        println!("{id:<18}{}", title(&id, &customs));
+        if writeln!(out, "{id:<18}{}", title(&id, &customs)).is_err() {
+            break;
+        }
     }
     ExitCode::SUCCESS
 }

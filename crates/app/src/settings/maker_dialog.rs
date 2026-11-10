@@ -117,7 +117,9 @@ pub fn open(ctx: &Rc<Ctx>) {
     let names = adw::PreferencesGroup::new();
     let name = adw::EntryRow::new();
     name.set_title("Name");
-    name.set_max_length(16);
+    if let Some(text) = name.delegate().and_downcast::<gtk::Text>() {
+        text.set_max_length(16);
+    }
     names.add(&name);
     let add = gtk::Button::with_label("Add hand");
     add.add_css_class("suggested-action");

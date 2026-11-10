@@ -2,7 +2,7 @@
 
 # TinyHand for Linux
 
-[![Platform: Linux](https://img.shields.io/badge/platform-Linux-lightgrey)](#install)
+[![Platform: Linux](https://img.shields.io/badge/platform-Linux%20(Wayland)-lightgrey)](#does-it-work-on-my-desktop)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
 A tiny hand on a stick that points at things on your Linux screen.
@@ -11,11 +11,56 @@ A tiny hand on a stick that points at things on your Linux screen.
 
 A Linux port of [TinyHand](https://tinyhand.app) by Kamran Ahmed, with the same 36 hands and tap sounds.
 
-Works on Wayland desktops with layer-shell support: niri, Sway, Hyprland, KDE Plasma, COSMIC and others. GNOME works through a small helper extension that ships with the app (experimental).
+## Get started
 
-## Install
+1. [Install](#1-install) the package for your distro.
+2. [Set up your desktop](#2-set-up-your-desktop). On GNOME there is nothing to configure; on other desktops you add two shortcuts.
+3. Press **Ctrl+Alt+H** and [point at things](#3-use-it).
 
-### Nix
+## Does it work on my desktop?
+
+TinyHand needs a **Wayland** session. X11 sessions are not supported.
+
+| Desktop | Works | What you set up |
+|---|---|---|
+| GNOME 47 or later | Yes, through a helper extension that comes with the package | Nothing. Shortcuts work out of the box. |
+| niri | Yes | Two shortcut lines in your niri config |
+| Hyprland | Yes | Two shortcut lines in your Hyprland config |
+| Sway | Yes | Two shortcut lines in your Sway config |
+| KDE Plasma 6 | Should work, not tested yet | Two custom shortcuts in System Settings |
+| COSMIC and other desktops with layer-shell | Should work, not tested yet | Two shortcuts that run a command |
+
+Tested so far on niri, Sway and GNOME 50.
+
+## 1. Install
+
+### Ubuntu and Debian
+
+For Ubuntu 25.04 or later and Debian 13 or later. Ubuntu 24.04 is not supported, because it has no gtk4-layer-shell package.
+
+```bash
+curl -LO https://github.com/xdinterface/tinyhand-linux/releases/latest/download/tinyhand-amd64.deb
+sudo apt install ./tinyhand-amd64.deb
+```
+
+### Fedora
+
+For Fedora 42 or later:
+
+```bash
+sudo dnf install https://github.com/xdinterface/tinyhand-linux/releases/latest/download/tinyhand-x86_64.rpm
+```
+
+### Arch Linux
+
+Build and install the package with the PKGBUILD from this repository:
+
+```bash
+curl -LO https://raw.githubusercontent.com/xdinterface/tinyhand-linux/main/packaging/arch/PKGBUILD
+makepkg -si
+```
+
+### NixOS and Nix
 
 Try it without installing:
 
@@ -40,46 +85,60 @@ imports = [inputs.tinyhand.homeModules.default];
 programs.tinyhand.enable = true;
 ```
 
-Options: `programs.tinyhand.settings` writes the config file for you (it then becomes read-only, so the toolbar and settings window can't save changes), and `programs.tinyhand.systemd.enable` (on by default) starts TinyHand with your session.
+Two more options: `programs.tinyhand.settings` writes the config file for you (it then becomes read-only, so the toolbar and settings window can't save changes), and `programs.tinyhand.systemd.enable` (on by default) starts TinyHand with your session.
 
-### From source
+### Any other distro, from source
 
-You need Rust 1.92 or later, GTK 4.14 or later, libadwaita 1.6 or later, gtk4-layer-shell and ALSA headers.
+You need Rust 1.92 or later ([rustup](https://rustup.rs) if your distro's is older), GTK 4.14 or later, libadwaita 1.5 or later, gtk4-layer-shell and the ALSA headers:
 
 ```bash
-# Debian 13, Ubuntu 25.04 or later
+# Debian, Ubuntu
 sudo apt install build-essential pkg-config libgtk-4-dev libadwaita-1-dev libgtk4-layer-shell-dev libasound2-dev
 # Fedora
-sudo dnf install gcc pkgconf-pkg-config gtk4-devel libadwaita-devel gtk4-layer-shell-devel alsa-lib-devel
+sudo dnf install cargo gcc make gtk4-devel libadwaita-devel gtk4-layer-shell-devel alsa-lib-devel
 # Arch
-sudo pacman -S --needed base-devel gtk4 libadwaita gtk4-layer-shell alsa-lib
+sudo pacman -S --needed base-devel cargo gtk4 libadwaita gtk4-layer-shell alsa-lib
 ```
 
-Then build and install to `/usr/local`:
+Then:
 
 ```bash
 git clone https://github.com/xdinterface/tinyhand-linux
 cd tinyhand-linux
-cargo build --release
-sudo install -Dm755 target/release/tinyhand /usr/local/bin/tinyhand
-sudo mkdir -p /usr/local/share/tinyhand
-sudo cp -r assets/hands assets/sounds assets/icons /usr/local/share/tinyhand/
-sudo install -Dm644 -t /usr/local/share/applications data/*.desktop
-sudo install -Dm644 -t /usr/local/share/icons/hicolor/scalable/apps assets/icons/io.github.xdinterface.TinyHand.svg
+make
+sudo make install
 ```
 
-Start it once with `tinyhand`, or turn on Settings → General → Open TinyHand when you log in.
+This installs to `/usr/local`. `sudo make uninstall` removes it again.
 
-### Shortcuts
+There is no AppImage or Flatpak. To update, install the newer package the same way.
 
-TinyHand doesn't grab global shortcuts itself. Bind these two commands in your desktop:
+## 2. Set up your desktop
+
+TinyHand is driven by two commands, and your desktop decides which keys run them:
 
 | Command | Suggested key |
 |---|---|
 | `tinyhand toggle` | Ctrl+Alt+H |
 | `tinyhand clear` | Ctrl+Alt+X |
 
-niri:
+### GNOME
+
+1. Log out and back in after installing, so GNOME picks up the helper extension.
+2. Open **TinyHand** from the app grid once. This switches the extension on.
+
+From then on Ctrl+Alt+H and Ctrl+Alt+X work, also after a restart. To use other keys, set them in the [config file](#settings):
+
+```toml
+toggle-shortcut = "ctrl+alt+h"   # or "off"
+clear-shortcut = "ctrl+alt+x"
+```
+
+GNOME has no tray by default, so the tray icon only shows if you use an AppIndicator extension (Ubuntu has one built in).
+
+### niri
+
+Add to `~/.config/niri/config.kdl`:
 
 ```kdl
 binds {
@@ -88,27 +147,40 @@ binds {
 }
 ```
 
-Sway: `bindsym Ctrl+Alt+h exec tinyhand toggle`. Hyprland: `bind = CTRL ALT, H, exec, tinyhand toggle`. KDE and GNOME: System Settings → Keyboard → Shortcuts → add a custom command.
+### Hyprland
 
-### GNOME
+Add to `~/.config/hypr/hyprland.conf`:
 
-Install the helper extension and turn it on, then log out and back in:
-
-```bash
-cp -r gnome-extension/tinyhand@xdinterface.github.io ~/.local/share/gnome-shell/extensions/
-gnome-extensions enable tinyhand@xdinterface.github.io
+```ini
+bind = CTRL ALT, H, exec, tinyhand toggle
+bind = CTRL ALT, X, exec, tinyhand clear
 ```
 
-The Nix package already includes the extension; only the `enable` step is needed.
+### Sway
 
-## Use
+Add to `~/.config/sway/config`:
+
+```
+bindsym Ctrl+Alt+h exec tinyhand toggle
+bindsym Ctrl+Alt+x exec tinyhand clear
+```
+
+### KDE Plasma and others
+
+Add two custom shortcuts that run the commands above. In KDE: System Settings → Keyboard → Shortcuts → Add New → Command or Script.
+
+### Start at login (optional)
+
+The first `tinyhand toggle` starts TinyHand, so this is only needed if you want the tray icon right after login. Turn on Settings → General → Open TinyHand when you log in. The Home Manager module already does this.
+
+## 3. Use it
 
 | | |
 |---|---|
-| `tinyhand toggle`, or click the tray icon | Turn the pointer on or off |
+| Ctrl+Alt+H, `tinyhand toggle`, or click the tray icon | Turn the pointer on or off |
 | Click | Tap (nothing underneath gets clicked) |
 | Hold and drag | Draw on the screen |
-| `tinyhand clear`, or C | Clear the drawing |
+| Ctrl+Alt+X, `tinyhand clear`, or C | Clear the drawing |
 | Hold Alt | Click for real |
 | Esc | Clear everything and turn the pointer off |
 | 1–9, M | Pick a pointer from the toolbar, mute |
@@ -133,9 +205,13 @@ tap-sound = "thock"       # thock, click, pop, wood, boop, squeak
 sound = true
 laser-sound = false
 interact-key = "alt"      # alt, ctrl, super, shift, off
-keyboard = "grab"         # "pass" lets you type in apps while the pointer is on
+keyboard = "grab"         # see below
 tray = true
+toggle-shortcut = "ctrl+alt+h"   # GNOME only
+clear-shortcut = "ctrl+alt+x"    # GNOME only
 ```
+
+`keyboard = "grab"` gives TinyHand the keyboard while the pointer is on, so Esc, C, M and 1–9 work. Your other apps count as unfocused meanwhile, and some draw themselves dimmer. `keyboard = "pass"` leaves the keyboard with your apps: they stay focused and you can type, but those keys no longer reach TinyHand, so use the toolbar and your two shortcuts instead.
 
 ## Make your own hand
 

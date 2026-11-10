@@ -2,6 +2,7 @@ mod app;
 mod backend;
 mod canvas;
 mod cli;
+mod gnome;
 mod hands;
 mod maker;
 mod overlay;

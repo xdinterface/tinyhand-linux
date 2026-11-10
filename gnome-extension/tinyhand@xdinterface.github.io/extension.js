@@ -1,6 +1,7 @@
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import Meta from 'gi://Meta';
+import Shell from 'gi://Shell';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import {PACKAGE_VERSION} from 'resource:///org/gnome/shell/misc/config.js';
@@ -17,11 +18,41 @@ function isOverlay(win) {
     return title.startsWith(PREFIX) && app === APP_ID;
 }
 
-function turnOff() {
+const SHORTCUTS = {toggle: 'ctrl+alt+h', clear: 'ctrl+alt+x'};
+const MODIFIERS = {ctrl: '<Control>', control: '<Control>', alt: '<Alt>', shift: '<Shift>', super: '<Super>'};
+
+function activate(action, flags) {
     Gio.DBus.session.call(
         APP_ID, OBJECT_PATH, 'org.gtk.Actions', 'Activate',
-        new GLib.Variant('(sava{sv})', ['off', [], {}]),
-        null, Gio.DBusCallFlags.NO_AUTO_START, -1, null, null);
+        new GLib.Variant('(sava{sv})', [action, [], {}]),
+        null, flags, -1, null, null);
+}
+
+function configPath() {
+    return GLib.getenv('TINYHAND_CONFIG') ??
+        GLib.build_filenamev([GLib.get_user_config_dir(), 'tinyhand', 'config.toml']);
+}
+
+function accelerator(text) {
+    const parts = text.toLowerCase().split('+').map(part => part.trim());
+    const key = parts.pop();
+    if (!key || key === 'off' || parts.some(part => !(part in MODIFIERS)))
+        return null;
+    return parts.map(part => MODIFIERS[part]).join('') + key;
+}
+
+function readShortcuts() {
+    let text = '';
+    try {
+        text = new TextDecoder().decode(GLib.file_get_contents(configPath())[1]);
+    } catch {
+    }
+    const shortcuts = {};
+    for (const [action, fallback] of Object.entries(SHORTCUTS)) {
+        const match = text.match(new RegExp(`^\\s*${action}-shortcut\\s*=\\s*"([^"]*)"`, 'm'));
+        shortcuts[action] = accelerator(match ? match[1] : fallback);
+    }
+    return shortcuts;
 }
 
 export default class TinyHandExtension extends Extension {
@@ -31,8 +62,16 @@ export default class TinyHandExtension extends Extension {
         this._created = global.display.connect('window-created', (_display, win) => this._watch(win));
         this._overview = Main.overview.connect('showing', () => {
             if (global.get_window_actors().some(actor => isOverlay(actor.meta_window)))
-                turnOff();
+                activate('off', Gio.DBusCallFlags.NO_AUTO_START);
         });
+        this._grabs = new Map();
+        this._activated = global.display.connect('accelerator-activated', (_display, id) => {
+            if (this._grabs.has(id))
+                activate(this._grabs.get(id), Gio.DBusCallFlags.NONE);
+        });
+        this._config = Gio.File.new_for_path(configPath()).monitor_file(Gio.FileMonitorFlags.NONE, null);
+        this._config.connect('changed', () => this._grab());
+        this._grab();
         for (const actor of global.get_window_actors())
             this._watch(actor.meta_window);
     }
@@ -40,10 +79,36 @@ export default class TinyHandExtension extends Extension {
     disable() {
         global.display.disconnect(this._created);
         Main.overview.disconnect(this._overview);
+        global.display.disconnect(this._activated);
+        this._config.cancel();
+        this._config = null;
+        this._ungrab();
+        this._grabs = null;
         for (const [win, ids] of this._watched)
             ids.forEach(id => win.disconnect(id));
         this._watched = null;
         this._placed = null;
+    }
+
+    _grab() {
+        this._ungrab();
+        for (const [action, accel] of Object.entries(readShortcuts())) {
+            if (!accel)
+                continue;
+            const id = global.display.grab_accelerator(accel, Meta.KeyBindingFlags.NONE);
+            if (id === Meta.KeyBindingAction.NONE)
+                continue;
+            Main.wm.allowKeybinding(Meta.external_binding_name_for_action(id), Shell.ActionMode.ALL);
+            this._grabs.set(id, action);
+        }
+    }
+
+    _ungrab() {
+        for (const id of this._grabs.keys()) {
+            Main.wm.allowKeybinding(Meta.external_binding_name_for_action(id), Shell.ActionMode.NONE);
+            global.display.ungrab_accelerator(id);
+        }
+        this._grabs.clear();
     }
 
     _watch(win) {

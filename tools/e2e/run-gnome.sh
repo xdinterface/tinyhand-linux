@@ -12,13 +12,13 @@ cat > $E/inner.sh <<'INNER'
 set -u
 gsettings set org.gnome.shell disable-user-extensions false
 gsettings set org.gnome.shell disable-extension-version-validation true
-gsettings set org.gnome.shell enabled-extensions "['tinyhand@xdinterface.github.io', 'tinyhand-test@local']"
+gsettings set org.gnome.shell enabled-extensions "$( [ -n "${NO_HELPER:-}" ] && echo "['tinyhand-test@local']" || echo "['tinyhand@xdinterface.github.io', 'tinyhand-test@local']")"
 gsettings set org.gnome.desktop.interface enable-animations false
 gsettings set org.gnome.shell welcome-dialog-last-shown-version '999'
 gnome-shell --headless --virtual-monitor ${RES:-1440x960} --wayland-display gnome-test --no-x11 > $E/shell.log 2>&1 &
 for i in $(seq 100); do gdbus call --session --dest org.gnome.Shell --object-path /org/gnome/Shell --method org.freedesktop.DBus.Peer.Ping >/dev/null 2>&1 && break; sleep 0.2; done
 sleep 1
-gnome-extensions enable tinyhand-test@local; gnome-extensions enable tinyhand@xdinterface.github.io
+gnome-extensions enable tinyhand-test@local; [ -n "${NO_HELPER:-}" ] || gnome-extensions enable tinyhand@xdinterface.github.io
 for i in $(seq 100); do gdbus call --session --dest org.tinyhand.Test --object-path /org/tinyhand/Test --method org.freedesktop.DBus.Peer.Ping >/dev/null 2>&1 && break; sleep 0.2; done
 export WAYLAND_DISPLAY=gnome-test GDK_BACKEND=wayland GTK_A11Y=none GDK_DEBUG=no-portals ADW_DISABLE_PORTAL=1
 drv() { gdbus call --session --dest org.tinyhand.Test --object-path /org/tinyhand/Test --method org.tinyhand.Test.$1 "${@:2}" >/dev/null; }
@@ -40,5 +40,5 @@ env -i PATH="$PATH" HOME="$HOME" LANG=C.UTF-8 \
   XDG_CONFIG_HOME=$E/config XDG_DATA_HOME=$E/data XDG_CACHE_HOME=$E/cache XDG_STATE_HOME=$E/state XDG_RUNTIME_DIR=$E/runtime \
   XDG_DATA_DIRS="${XDG_DATA_DIRS:-/run/current-system/sw/share}" \
   TINYHAND_CONFIG=$E/tinyhand.toml TINYHAND_DATA_DIR=$P/assets \
-  BIN=${BIN:-$P/target/debug/tinyhand} E=$E SCENARIO=$(readlink -f "$1") \
+  NO_HELPER=${NO_HELPER:-} BIN=${BIN:-$P/target/debug/tinyhand} E=$E SCENARIO=$(readlink -f "$1") \
   timeout ${RUN_TIMEOUT:-90} dbus-run-session -- bash $E/inner.sh

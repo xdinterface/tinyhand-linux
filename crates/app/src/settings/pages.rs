@@ -379,9 +379,10 @@ pub fn about(ctx: &Rc<Ctx>) -> adw::PreferencesPage {
     page.add(&info);
 
     let reset = group("", None);
-    let button = adw::ButtonRow::new();
+    let button = adw::ActionRow::new();
     button.set_title("Reset all settings…");
-    button.add_css_class("destructive-action");
+    button.set_activatable(true);
+    button.add_css_class("error");
     button.set_sensitive(ctx.writable);
     let weak = Rc::downgrade(ctx);
     button.connect_activated(move |_| {
