@@ -67,6 +67,7 @@ export default class TinyHandExtension extends Extension {
     enable() {
         this._watched = new Map();
         this._placed = new WeakSet();
+        this._fixing = new Set();
         this._created = global.display.connect('window-created', (_display, win) => this._watch(win));
         this._overview = Main.overview.connect('hidden', () => {
             for (const win of this._watched.keys()) {
@@ -108,6 +109,7 @@ export default class TinyHandExtension extends Extension {
             ids.forEach(id => win.disconnect(id));
         this._watched = null;
         this._placed = null;
+        this._fixing = null;
     }
 
     _configure() {
@@ -178,6 +180,8 @@ export default class TinyHandExtension extends Extension {
         const ids = [
             win.connect('notify::title', check),
             win.connect('notify::wm-class', check),
+            win.connect('size-changed', () => this._keepMaximized(win)),
+            win.connect('notify::minimized', () => this._keepMaximized(win)),
             win.connect('unmanaged', () => {
                 ids.forEach(id => win.disconnect(id));
                 this._watched?.delete(win);
@@ -186,6 +190,33 @@ export default class TinyHandExtension extends Extension {
         ];
         this._watched.set(win, ids);
         check();
+    }
+
+    _maximize(win) {
+        if (SHELL_MAJOR >= 49)
+            win.maximize();
+        else
+            win.maximize(Meta.MaximizeFlags.BOTH);
+    }
+
+    _keepMaximized(win) {
+        if (!this._placed?.has(win) || this._fixing?.has(win))
+            return;
+        const maximized = SHELL_MAJOR >= 49
+            ? win.is_maximized()
+            : win.get_maximized() === Meta.MaximizeFlags.BOTH;
+        if (maximized && !win.minimized)
+            return;
+        this._fixing.add(win);
+        GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+            this._fixing?.delete(win);
+            if (this._placed?.has(win) && isOverlay(win)) {
+                if (win.minimized)
+                    win.unminimize();
+                this._maximize(win);
+            }
+            return GLib.SOURCE_REMOVE;
+        });
     }
 
     _setPassing(win, passing) {
@@ -215,10 +246,7 @@ export default class TinyHandExtension extends Extension {
         win.stick();
         if (index >= 0)
             win.move_to_monitor(index);
-        if (SHELL_MAJOR >= 49)
-            win.maximize();
-        else
-            win.maximize(Meta.MaximizeFlags.BOTH);
+        this._maximize(win);
         Main.activateWindow(win);
     }
 }

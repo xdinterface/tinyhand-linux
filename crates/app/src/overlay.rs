@@ -127,6 +127,13 @@ impl Overlay {
             }
         });
 
+        let weak = Rc::downgrade(session);
+        overlay.window.connect_close_request(move |_| {
+            if let Some(session) = weak.upgrade() {
+                session.deactivate();
+            }
+            glib::Propagation::Stop
+        });
         overlay.window.present();
         if session.passing() {
             overlay.set_passing(true);

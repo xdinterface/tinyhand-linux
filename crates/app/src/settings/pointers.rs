@@ -1,13 +1,30 @@
 use super::{Ctx, maker_dialog};
 use crate::app::title;
+use crate::hands;
 use crate::maker;
 use crate::toolbar::pointer_icon;
 use adw::prelude::*;
+use gtk::glib;
 use std::rc::Rc;
 use tinyhand_core::catalog::{self, DEFAULT_POINTER, DEFAULT_TOOLBAR, LASER, MAX_PINNED};
 use tinyhand_core::config::Value;
 
 const ICON: i32 = 44;
+
+fn lazy_icon(id: &str, size: i32) -> gtk::Widget {
+    if id == LASER || hands::has_thumbnail(id) {
+        return pointer_icon(id, size);
+    }
+    let image = gtk::Image::new();
+    image.set_pixel_size(size);
+    let (weak, id) = (image.downgrade(), id.to_string());
+    glib::idle_add_local_once(move || {
+        if let Some(image) = weak.upgrade() {
+            image.set_paintable(hands::thumbnail(&id).as_ref());
+        }
+    });
+    image.upcast()
+}
 
 fn all_ids(ctx: &Ctx) -> Vec<String> {
     catalog::BUILTIN
@@ -149,7 +166,7 @@ pub fn page(ctx: &Rc<Ctx>) -> adw::PreferencesPage {
             pinned.remove_all();
             for id in &toolbar {
                 let button = gtk::Button::new();
-                button.set_child(Some(&pointer_icon(id, ICON)));
+                button.set_child(Some(&lazy_icon(id, ICON)));
                 button.add_css_class("flat");
                 button.set_tooltip_text(Some(&format!("Remove {} from the toolbar", name(&ctx, id))));
                 let (weak, removed) = (Rc::downgrade(&ctx), id.clone());
@@ -187,7 +204,7 @@ pub fn page(ctx: &Rc<Ctx>) -> adw::PreferencesPage {
             grid.remove_all();
             for id in all_ids(&ctx) {
                 let toggle = gtk::ToggleButton::new();
-                toggle.set_child(Some(&pointer_icon(&id, ICON)));
+                toggle.set_child(Some(&lazy_icon(&id, ICON)));
                 toggle.add_css_class("flat");
                 toggle.set_active(toolbar.contains(&id));
                 toggle.set_tooltip_text(Some(&name(&ctx, &id)));

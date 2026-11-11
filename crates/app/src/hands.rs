@@ -132,6 +132,10 @@ pub fn forget(id: &str) {
     THUMBNAILS.with_borrow_mut(|cache| cache.remove(id));
 }
 
+pub fn has_thumbnail(id: &str) -> bool {
+    THUMBNAILS.with_borrow(|cache| cache.contains_key(id))
+}
+
 pub fn thumbnail(id: &str) -> Option<gdk::Texture> {
     if let Some(hit) = THUMBNAILS.with_borrow(|cache| cache.get(id).cloned()) {
         return Some(hit);
