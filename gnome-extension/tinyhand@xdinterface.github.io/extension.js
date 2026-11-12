@@ -88,6 +88,9 @@ export default class TinyHandExtension extends Extension {
         });
         this._config = Gio.File.new_for_path(configPath()).monitor_file(Gio.FileMonitorFlags.NONE, null);
         this._config.connect('changed', () => this._configure());
+        this._running = false;
+        this._busWatch = Gio.bus_watch_name(Gio.BusType.SESSION, APP_ID, Gio.BusNameWatcherFlags.NONE,
+            () => this._setRunning(true), () => this._setRunning(false));
         this._configure();
         for (const actor of global.get_window_actors())
             this._watch(actor.meta_window);
@@ -98,6 +101,7 @@ export default class TinyHandExtension extends Extension {
         Main.overview.disconnect(this._overview);
         this._injections.clear();
         this._injections = null;
+        Gio.bus_unwatch_name(this._busWatch);
         this._indicator?.destroy();
         this._indicator = null;
         global.display.disconnect(this._activated);
@@ -112,10 +116,15 @@ export default class TinyHandExtension extends Extension {
         this._fixing = null;
     }
 
+    _setRunning(running) {
+        this._running = running;
+        this._configure();
+    }
+
     _configure() {
         const text = readConfig();
         this._grab(readShortcuts(text));
-        const wanted = !/^\s*tray\s*=\s*false/m.test(text);
+        const wanted = this._running && !/^\s*tray\s*=\s*false/m.test(text);
         if (wanted && !this._indicator)
             this._addIndicator();
         else if (!wanted && this._indicator) {

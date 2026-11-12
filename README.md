@@ -135,7 +135,7 @@ toggle-shortcut = "ctrl+alt+h"   # or "off"
 clear-shortcut = "ctrl+alt+x"
 ```
 
-GNOME has no tray, so TinyHand puts its own icon and menu in the top bar instead. `tray = false` hides it. Opening the overview keeps the pointer on.
+GNOME has no tray, so TinyHand puts its own icon and menu in the top bar instead, shown while TinyHand is running. `tray = false` hides it. Opening the overview keeps the pointer on.
 
 ### niri
 
