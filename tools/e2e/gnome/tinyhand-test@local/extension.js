@@ -11,6 +11,7 @@ const IFACE = `<node><interface name="org.tinyhand.Test">
   <method name="Key"><arg type="u" direction="in"/><arg type="b" direction="in"/></method>
   <method name="Shot"><arg type="s" direction="in"/></method>
   <method name="Windows"><arg type="s" direction="out"/></method>
+  <method name="Cursor"><arg type="s" direction="out"/></method>
   <method name="Overview"><arg type="b" direction="in"/></method>
   <method name="Workspace"><arg type="i" direction="in"/></method>
 </interface></node>`;
@@ -48,6 +49,11 @@ export default class TestDriver extends Extension {
         const shooter = new Shell.Screenshot();
         const stream = Gio.File.new_for_path(path).replace(null, false, Gio.FileCreateFlags.NONE, null);
         shooter.screenshot(false, stream, () => stream.close(null));
+    }
+
+    Cursor() {
+        const sprite = global.backend.get_cursor_tracker().get_sprite();
+        return sprite ? `${sprite.get_width()}x${sprite.get_height()}` : 'none';
     }
 
     Windows() {

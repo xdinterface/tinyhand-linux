@@ -88,6 +88,8 @@ pub fn pointer_icon(id: &str, size: i32) -> gtk::Widget {
 fn button(child: &impl IsA<gtk::Widget>, tip: &str) -> gtk::Button {
     let button = gtk::Button::new();
     button.set_child(Some(child));
+    button.set_cursor_from_name(Some("none"));
+    child.set_cursor_from_name(Some("none"));
     button.set_tooltip_text(Some(tip));
     button.set_focusable(false);
     button.set_focus_on_click(false);

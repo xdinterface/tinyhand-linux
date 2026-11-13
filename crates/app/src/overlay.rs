@@ -105,6 +105,8 @@ impl Overlay {
         let catcher = gtk::Box::new(gtk::Orientation::Vertical, 0);
         catcher.set_cursor_from_name(Some("none"));
         let layers = gtk::Overlay::new();
+        layers.set_cursor_from_name(Some("none"));
+        overlay.toolbar.root.set_cursor_from_name(Some("none"));
         layers.set_child(Some(&catcher));
         layers.add_overlay(&overlay.toolbar.root);
         layers.add_overlay(&overlay.canvas);
